@@ -1,0 +1,72 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fitsSystemWindows="true">
+
+    <!-- Pasek górny -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:background="#467272"
+        android:gravity="center"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp">
+
+        <TextView
+            android:id="@+id/topBarTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Activities"
+            android:textColor="@android:color/white"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- Główna część, którą będziesz wymieniać -->
+    <FrameLayout
+        android:id="@+id/mainContainer"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:background="@android:color/white"
+        android:layout_weight="1" />
+
+    <!-- Pasek dolny z trzema przyciskami -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="65dp"
+        android:orientation="horizontal"
+        android:background="#467272"
+        android:gravity="center">
+
+        <ImageButton
+            android:id="@+id/buttonMap"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:scaleType="fitCenter"
+            android:layout_weight="1"
+            android:background="@android:color/transparent"
+            android:src="@drawable/map"
+            android:contentDescription="Map" />
+
+        <ImageButton
+            android:id="@+id/buttonHome"
+            android:layout_width="0dp"
+            android:layout_height="50dp"
+            android:scaleType="fitCenter"
+            android:layout_weight="1"
+            android:background="@android:color/transparent"
+            android:src="@drawable/home"
+            android:contentDescription="Home" />
+
+        <ImageButton
+            android:id="@+id/buttonGlobe"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:scaleType="fitCenter"
+            android:layout_weight="1"
+            android:background="@android:color/transparent"
+            android:src="@drawable/globe"
+            android:contentDescription="Globe" />
+    </LinearLayout>
+</LinearLayout>
