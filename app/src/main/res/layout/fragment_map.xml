@@ -11,4 +11,9 @@
         android:text="Map Fragment"
         android:textSize="20sp" />
 
+    <Button
+        android:id="@+id/buttonA"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"/>
+
 </LinearLayout>

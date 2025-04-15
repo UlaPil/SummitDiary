@@ -9,27 +9,19 @@ import com.example.summitdiary.R
 import com.example.summitdiary.databinding.FragmentGlobeBinding
 
 class GlobeFragment : Fragment(R.layout.fragment_globe) {
-
-    // Zmienna do przechowywania instancji ViewBinding
     private var _binding: FragmentGlobeBinding? = null
-    private val binding get() = _binding!! // Używaj go tylko po sprawdzeniu, że _binding != null
+    private val binding get() = _binding!!
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
-        // Inicjalizacja ViewBinding
+    ): View {
         _binding = FragmentGlobeBinding.inflate(inflater, container, false)
-
-        // Teraz możesz uzyskać dostęp do widoków za pomocą bindinga, np.:
-        // binding.textView.text = "Globe Fragment"
-
-        return binding.root // Zwróć root widoku z bindingu
+        return binding.root
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
-        // Zapewnij, że binding jest anulowany, aby uniknąć wycieków pamięci
         _binding = null
     }
 
