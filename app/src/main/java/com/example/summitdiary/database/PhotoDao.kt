@@ -9,7 +9,7 @@ interface PhotoDao {
     fun getAll(): List<Photo>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insert(photo: Photo)
+    fun insert(photo: Photo) : Long?
 
     @Query("SELECT * FROM Photos WHERE photo_id = :id")
     fun getById(id: Long): Photo?

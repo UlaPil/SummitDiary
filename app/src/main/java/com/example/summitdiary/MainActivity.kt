@@ -6,7 +6,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.commit
 import androidx.fragment.app.replace
 import com.example.summitdiary.databinding.BaseBinding
-import com.example.summitdiary.fragments.HomeFragment
 import com.example.summitdiary.fragments.MapFragment
 import com.example.summitdiary.fragments.GlobeFragment
 import androidx.core.graphics.toColorInt
@@ -23,9 +22,6 @@ class MainActivity : AppCompatActivity() {
             addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS)
             statusBarColor = "#467272".toColorInt()
         }
-//        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-//            window.navigationBarColor = Color.parseColor("#467272")
-//        }
         if (savedInstanceState == null) {
             supportFragmentManager.commit {
                 replace<HomeFragment>(R.id.mainContainer)
