@@ -28,7 +28,6 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
 import androidx.fragment.app.viewModels
-import androidx.lifecycle.ViewModelProvider
 import com.example.summitdiary.database.AppDatabase
 import com.example.summitdiary.database.Hike
 import com.example.summitdiary.database.HikeDao

@@ -12,6 +12,13 @@ interface HikeDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insert(hike: Hike) : Long?
 
+    @Transaction
+    @Query("SELECT * FROM Hikes")
+    fun getHikesWithPhotos(): Flow<List<HikeWithPhotos>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertHikePhotoCrossRef(crossRef: HikePhoto)
+
     @Update
     suspend fun update(hike: Hike)
 

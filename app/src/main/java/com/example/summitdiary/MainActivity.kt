@@ -9,6 +9,7 @@ import com.example.summitdiary.databinding.BaseBinding
 import com.example.summitdiary.fragments.MapFragment
 import com.example.summitdiary.fragments.GlobeFragment
 import androidx.core.graphics.toColorInt
+import com.example.summitdiary.fragments.HomeFragment
 
 class MainActivity : AppCompatActivity() {
 

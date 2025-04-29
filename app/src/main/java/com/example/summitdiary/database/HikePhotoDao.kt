@@ -11,8 +11,12 @@ interface HikePhotoDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insert(link: HikePhoto)
 
-    @Query("SELECT p.path FROM HikesPhotos hp INNER JOIN Photos p on p.photo_id = hp.photo_id WHERE hp.hike_id = :hikeId")
-    fun getPhotosForHike(hikeId: Long): List<String>
+    @Query("""
+        SELECT Photos.* FROM Photos
+        INNER JOIN HikesPhotos ON HikesPhotos.photo_id = Photos.photo_id
+        WHERE HikesPhotos.hike_id = :hikeId
+    """)
+    suspend fun getPhotosForHike(hikeId: Long): List<Photo>
 
     @Delete
     fun delete(link: HikePhoto)

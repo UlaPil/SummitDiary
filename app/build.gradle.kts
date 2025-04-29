@@ -60,4 +60,7 @@ dependencies {
     implementation(libs.androidx.camera.view)
     implementation(libs.androidx.lifecycle.livedata.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
+    implementation(libs.coil)
+    implementation(libs.glide)
+    ksp(libs.glideCompiler)
 }
