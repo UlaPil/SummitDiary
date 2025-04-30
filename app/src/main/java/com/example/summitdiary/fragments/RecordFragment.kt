@@ -52,6 +52,10 @@ class RecordFragment : Fragment() {
     private lateinit var hikePhotoDao: HikePhotoDao
     private lateinit var hikeDao: HikeDao
 
+    private val locationPoints = mutableListOf<Pair<Double, Double>>()
+    private lateinit var locationCallback: android.location.LocationListener
+    private lateinit var locationManager: android.location.LocationManager
+
     private val viewModel: RecordViewModel by viewModels()
     private var startTimeInMillis: Long? = 0L
     private var elapsedSeconds = 0L
@@ -103,6 +107,7 @@ class RecordFragment : Fragment() {
                 startTimeInMillis = System.currentTimeMillis()
                 elapsedSeconds = 0L
                 startTimer()
+                startLocationTracking()
 
                 lifecycleScope.launch(Dispatchers.IO) {
                     val hike = Hike(
@@ -119,9 +124,16 @@ class RecordFragment : Fragment() {
                     }
                 }
             } else {
+                stopLocationTracking()
+                saveGpxFile()
                 stopTimer()
                 binding.timeText.text = "0h 0min"
-                showNameHikeDialog()
+                lifecycleScope.launch(Dispatchers.IO) {
+                    withContext(Dispatchers.Main) {
+                        showNameHikeDialog()
+                        Toast.makeText(requireContext(), "Zakończono wędrówkę", Toast.LENGTH_SHORT).show()
+                    }
+                }
                 Toast.makeText(requireContext(), "Zakończono wędrówkę", Toast.LENGTH_SHORT).show()
             }
         }
@@ -235,34 +247,101 @@ class RecordFragment : Fragment() {
         )
     }
 
-    private fun showNameHikeDialog() {
-        val editText = EditText(requireContext())
-        editText.hint = "Podaj nazwę wędrówki"
-        editText.setPadding(32, 32, 32, 32)
-
+    private suspend fun showNameHikeDialog() {
         val durationFormatted = formatDuration(elapsedSeconds)
-        requireActivity().requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LOCKED
+
+        val startLat = locationPoints.firstOrNull()?.first
+        val startLon = locationPoints.firstOrNull()?.second
+
+        if (startLat == null || startLon == null) {
+            withContext(Dispatchers.Main) {
+                Toast.makeText(requireContext(), "Brak punktu początkowego", Toast.LENGTH_SHORT).show()
+            }
+            return
+        }
+
+        val db = AppDatabase.getDatabase(requireContext())
+        val placeDao = db.placeDao()
+
+        val nearbyPlaces = withContext(Dispatchers.IO) {
+            placeDao.getAll().filter { place ->
+                val (lat, lon) = place.gps.split(",").map { it.trim().toDoubleOrNull() ?: 0.0 }
+                distanceInMeters(startLat, startLon, lat, lon) < 2000
+            }
+        }
+
+        val placeNames = nearbyPlaces.map { it.name } + "Dodaj nowe miejsce"
+
+        withContext(Dispatchers.Main) {
+            AlertDialog.Builder(requireContext())
+                .setTitle("Wybierz miejsce startu")
+                .setSingleChoiceItems(placeNames.toTypedArray(), -1) { dialog, which ->
+                    if (which < nearbyPlaces.size) {
+                        val selectedPlaceId = nearbyPlaces[which].place_id
+                        showHikeNameDialog(durationFormatted, selectedPlaceId)
+                        dialog.dismiss()
+                    } else {
+                        askForNewPlaceName(startLat, startLon, durationFormatted)
+                        dialog.dismiss()
+                    }
+                }
+                .setNegativeButton("Anuluj", null)
+                .show()
+        }
+    }
+
+
+    private fun askForNewPlaceName(lat: Double, lon: Double, durationFormatted: String) {
+        val input = EditText(requireContext())
+        input.hint = "Nazwa nowego miejsca"
+
         AlertDialog.Builder(requireContext())
-            .setTitle("Zakończono wędrówkę")
-            .setMessage("Czas trwania: $durationFormatted\nPodaj nazwę wędrówki:")
-            .setView(editText)
+            .setTitle("Dodaj nowe miejsce")
+            .setView(input)
             .setPositiveButton("Zapisz") { _, _ ->
-                val newTitle = editText.text.toString().ifBlank { "Wędrówka $durationFormatted" }
+                val name = input.text.toString().ifBlank { "Nowe miejsce" }
+                val gpsString = "$lat, $lon"
+
+                lifecycleScope.launch(Dispatchers.IO) {
+                    val db = AppDatabase.getDatabase(requireContext())
+                    val placeId = db.placeDao().insert(com.example.summitdiary.database.Place(name = name, gps = gpsString))
+                    withContext(Dispatchers.Main) {
+                        showHikeNameDialog(durationFormatted, placeId)
+                    }
+                }
+            }
+            .setNegativeButton("Anuluj", null)
+            .show()
+    }
+
+    private fun showHikeNameDialog(durationFormatted: String, placeId: Long) {
+        val input = EditText(requireContext())
+        input.hint = "Nazwa wędrówki"
+
+        AlertDialog.Builder(requireContext())
+            .setTitle("Zakończ wędrówkę")
+            .setMessage("Czas trwania: $durationFormatted")
+            .setView(input)
+            .setPositiveButton("Zapisz") { _, _ ->
+                val name = input.text.toString().ifBlank { "Wędrówka $durationFormatted" }
+
                 lifecycleScope.launch(Dispatchers.IO) {
                     viewModel.currentHikeId?.let { hikeId ->
-                        val hike = hikeDao.getHikeById(hikeId)
-                        hike?.let {
-                            it.title = newTitle
-                            it.time = durationFormatted
-                            hikeDao.update(it)
+                        val db = AppDatabase.getDatabase(requireContext())
+                        val hike = db.hikeDao().getHikeById(hikeId)
+                        if (hike != null) {
+                            hike.title = name
+                            hike.time = durationFormatted
+                            hike.place_id = placeId
+                            db.hikeDao().update(hike)
                         }
                     }
                 }
             }
             .setNegativeButton("Anuluj", null)
             .show()
-        requireActivity().requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
     }
+
 
     private fun formatDuration(seconds: Long): String {
         val hours = seconds / 3600
@@ -303,6 +382,71 @@ class RecordFragment : Fragment() {
         binding.timeText.text = String.format("%02d:%02d:%02d", hours, minutes, seconds)
     }
 
+    private fun startLocationTracking() {
+        locationManager = requireContext().getSystemService(Activity.LOCATION_SERVICE) as android.location.LocationManager
+
+        locationCallback = android.location.LocationListener { location ->
+            locationPoints.add(location.latitude to location.longitude)
+        }
+
+        if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION)
+            != PackageManager.PERMISSION_GRANTED
+        ) {
+            ActivityCompat.requestPermissions(requireActivity(), arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), 200)
+            return
+        }
+
+        locationManager.requestLocationUpdates(
+            android.location.LocationManager.GPS_PROVIDER,
+            5L,                                                                                        // TODO: !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            0.000005f,
+            locationCallback
+        )
+    }
+
+    private fun stopLocationTracking() {
+        if (::locationManager.isInitialized && ::locationCallback.isInitialized) {
+            locationManager.removeUpdates(locationCallback)
+        }
+    }
+
+    private fun saveGpxFile() {
+        if (locationPoints.isEmpty()) return
+
+        val gpx = buildString {
+            append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
+            append("<gpx version=\"1.1\" creator=\"SummitDiary\">\n")
+            append("<trk><name>Recorded Track</name><trkseg>\n")
+            for ((lat, lon) in locationPoints) {
+                append("<trkpt lat=\"$lat\" lon=\"$lon\"></trkpt>\n")
+            }
+            append("</trkseg></trk>\n")
+            append("</gpx>")
+        }
+
+        val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+        val fileName = "track_$timeStamp.gpx"
+        val file = File(requireContext().getExternalFilesDir(null), fileName)
+        file.writeText(gpx)
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            viewModel.currentHikeId?.let { hikeId ->
+                val hike = hikeDao.getHikeById(hikeId)
+                if (hike != null) {
+                    hike.gpx_path = file.absolutePath
+                    hikeDao.update(hike)
+                }
+            }
+        }
+
+        Toast.makeText(requireContext(), "Zapisano ślad do pliku GPX", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun distanceInMeters(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
+        val results = FloatArray(1)
+        android.location.Location.distanceBetween(lat1, lon1, lat2, lon2, results)
+        return results[0].toDouble()
+    }
 
     override fun onDestroyView() {
         super.onDestroyView()

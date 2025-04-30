@@ -9,7 +9,7 @@ interface PlaceDao {
     fun getAll(): List<Place>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    fun insert(place: Place)
+    fun insert(place: Place) : Long
 
     @Query("SELECT name FROM Places WHERE place_id = :id")
     fun getById(id: Long): String?

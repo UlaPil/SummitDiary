@@ -63,4 +63,6 @@ dependencies {
     implementation(libs.coil)
     implementation(libs.glide)
     ksp(libs.glideCompiler)
+    implementation(libs.osmdroid.android)
+    implementation(libs.osmdroid.wms)
 }

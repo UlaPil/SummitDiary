@@ -7,8 +7,8 @@ data class Hike(
     @PrimaryKey(autoGenerate = true) val hike_id: Long = 0,
     var title: String,
     var date: String,
-    val distance: Int,
+    var distance: Int,
     var time: String,
-    val place_id: Long,
-    val gpx_path: String
+    var place_id: Long,
+    var gpx_path: String
 )
