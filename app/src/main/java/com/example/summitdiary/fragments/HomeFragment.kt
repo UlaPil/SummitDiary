@@ -1,5 +1,6 @@
 package com.example.summitdiary.fragments
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -51,7 +52,13 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         adapter = HikeAdapter(
             emptyList(),
             onDeleteClick = { hikeWithPhotos -> deleteHikeWithPhotos(hikeWithPhotos) },
-            onTitleChange = { newTitle, hikeWithPhotos -> updateHikeTitle(newTitle, hikeWithPhotos) }
+            onTitleChange = { newTitle, hikeWithPhotos -> updateHikeTitle(newTitle, hikeWithPhotos) },
+            onMapClick = { hike ->
+                val intent = Intent(requireContext(), MapTrackActivity::class.java).apply {
+                    putExtra("gpxPath", hike.hike.gpx_path)
+                }
+                startActivity(intent)
+            }
         )
 
         binding.recyclerView.layoutManager = LinearLayoutManager(requireContext())

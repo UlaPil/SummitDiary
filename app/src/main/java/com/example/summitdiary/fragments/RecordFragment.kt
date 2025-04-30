@@ -43,6 +43,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.math.roundToInt
 
 class RecordFragment : Fragment() {
     private var _binding: FragmentRecordBinding? = null
@@ -57,6 +58,7 @@ class RecordFragment : Fragment() {
     private lateinit var locationManager: android.location.LocationManager
 
     private val viewModel: RecordViewModel by viewModels()
+    private var totalDistanceMeters = 0.0
     private var startTimeInMillis: Long? = 0L
     private var elapsedSeconds = 0L
     private var isRecording = false
@@ -113,7 +115,7 @@ class RecordFragment : Fragment() {
                     val hike = Hike(
                         title = "Nowa wędrówka",
                         date = SimpleDateFormat("dd.MM.yyyy (HH:mm)", Locale.getDefault()).format(Date()),
-                        distance = 0,
+                        distance = 0.0,
                         time = "0",
                         place_id = 1,
                         gpx_path = ""
@@ -281,7 +283,7 @@ class RecordFragment : Fragment() {
                         showHikeNameDialog(durationFormatted, selectedPlaceId)
                         dialog.dismiss()
                     } else {
-                        askForNewPlaceName(startLat, startLon, durationFormatted)
+                        askForNewPlaceName(locationPoints.lastOrNull()!!.first, locationPoints.lastOrNull()!!.second, durationFormatted)
                         dialog.dismiss()
                     }
                 }
@@ -353,10 +355,7 @@ class RecordFragment : Fragment() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == Activity.RESULT_OK) {
-            photoUri?.let { uri ->
-                // Tutaj masz Uri do zapisanego zdjęcia!
-                // Możesz np. wyświetlić je w ImageView, zapisać do bazy itd.
-            }
+            photoUri?.let {}
         }
     }
 
@@ -386,8 +385,21 @@ class RecordFragment : Fragment() {
         locationManager = requireContext().getSystemService(Activity.LOCATION_SERVICE) as android.location.LocationManager
 
         locationCallback = android.location.LocationListener { location ->
-            locationPoints.add(location.latitude to location.longitude)
+            val newPoint = location.latitude to location.longitude
+
+            val lastPoint = locationPoints.lastOrNull()
+            if (lastPoint != null) {
+                val distance = distanceInMeters(
+                    lastPoint.first, lastPoint.second,
+                    newPoint.first, newPoint.second
+                )
+                totalDistanceMeters += distance
+                updateDistanceUI()
+            }
+
+            locationPoints.add(newPoint)
         }
+
 
         if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION)
             != PackageManager.PERMISSION_GRANTED
@@ -398,8 +410,8 @@ class RecordFragment : Fragment() {
 
         locationManager.requestLocationUpdates(
             android.location.LocationManager.GPS_PROVIDER,
-            5L,                                                                                        // TODO: !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            0.000005f,
+            2000L,
+            1f,
             locationCallback
         )
     }
@@ -408,6 +420,12 @@ class RecordFragment : Fragment() {
         if (::locationManager.isInitialized && ::locationCallback.isInitialized) {
             locationManager.removeUpdates(locationCallback)
         }
+    }
+
+    private fun updateDistanceUI() {
+        val km = totalDistanceMeters / 1000
+        val formatted = String.format(Locale.getDefault(), "%.2f km", km)
+        binding.distanceText.text = formatted
     }
 
     private fun saveGpxFile() {
@@ -434,6 +452,7 @@ class RecordFragment : Fragment() {
                 val hike = hikeDao.getHikeById(hikeId)
                 if (hike != null) {
                     hike.gpx_path = file.absolutePath
+                    hike.distance = (totalDistanceMeters / 1000)
                     hikeDao.update(hike)
                 }
             }

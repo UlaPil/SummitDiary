@@ -19,7 +19,8 @@ import java.io.File
 class HikeAdapter(
     private var hikes: List<HikeWithPhotos>,
     private val onDeleteClick: (HikeWithPhotos) -> Unit,
-    private val onTitleChange: (newTitle: String, hike: HikeWithPhotos) -> Unit
+    private val onTitleChange: (newTitle: String, hike: HikeWithPhotos) -> Unit,
+    private val onMapClick: (HikeWithPhotos) -> Unit
 ) : RecyclerView.Adapter<HikeAdapter.HikeViewHolder>() {
 
     inner class HikeViewHolder(val binding: HikeRowBinding) : RecyclerView.ViewHolder(binding.root)
@@ -74,6 +75,9 @@ class HikeAdapter(
                 }
                 .setNegativeButton("Anuluj", null)
                 .show()
+        }
+        holder.binding.mapButton.setOnClickListener {
+            onMapClick(hikeWithPhotos)
         }
         holder.binding.title.setOnClickListener {
             holder.binding.title.setOnClickListener {
