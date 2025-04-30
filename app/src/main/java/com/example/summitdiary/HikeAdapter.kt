@@ -12,15 +12,22 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.example.summitdiary.database.HikeWithPhotos
+import com.example.summitdiary.database.PlaceDao
 import com.example.summitdiary.databinding.HikeRowBinding
-import com.example.summitdiary.fragments.PhotoPreviewDialogFragment
+import com.example.summitdiary.fragments.PhotoGalleryDialogFragment
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
+import java.util.Locale
 
 class HikeAdapter(
     private var hikes: List<HikeWithPhotos>,
     private val onDeleteClick: (HikeWithPhotos) -> Unit,
     private val onTitleChange: (newTitle: String, hike: HikeWithPhotos) -> Unit,
-    private val onMapClick: (HikeWithPhotos) -> Unit
+    private val onMapClick: (HikeWithPhotos) -> Unit,
+    private val placeDao: PlaceDao
 ) : RecyclerView.Adapter<HikeAdapter.HikeViewHolder>() {
 
     inner class HikeViewHolder(val binding: HikeRowBinding) : RecyclerView.ViewHolder(binding.root)
@@ -36,9 +43,15 @@ class HikeAdapter(
         val hike = hikeWithPhotos.hike
         holder.binding.apply {
             title.text = hike.title
-            distance.text = "${hike.distance} km"
+            distance.text = String.format(Locale.getDefault(), "%.2f km", hike.distance)
             time.text = hike.time
             dateAndPlace.text = "${hike.date} • ${hike.place_id}"
+            CoroutineScope(Dispatchers.IO).launch {
+                val placeName = placeDao.getById(hike.place_id)
+                withContext(Dispatchers.Main) {
+                    dateAndPlace.text = "${hike.date} • ${placeName ?: "nieznane"}"
+                }
+            }
             imageGallery.removeAllViews()
 
             for (photo in hikeWithPhotos.photos) {
@@ -60,8 +73,10 @@ class HikeAdapter(
                     val context = it.context
                     val activity = context as? AppCompatActivity
                     activity?.supportFragmentManager?.let { fragmentManager ->
-                        val dialog = PhotoPreviewDialogFragment.newInstance(photo.path)
-                        dialog.show(fragmentManager, "photo_preview")
+                        val allPhotoPaths = hikeWithPhotos.photos.map { p -> p.path }
+                        val clickedIndex = hikeWithPhotos.photos.indexOf(photo)
+                        val dialog = PhotoGalleryDialogFragment.newInstance(allPhotoPaths, clickedIndex)
+                        dialog.show(fragmentManager, "photo_gallery")
                     }
                 }
             }

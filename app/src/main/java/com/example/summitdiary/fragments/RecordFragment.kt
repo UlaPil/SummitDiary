@@ -165,7 +165,14 @@ class RecordFragment : Fragment() {
                 currentPhotoPath?.let { path ->
                     lifecycleScope.launch(Dispatchers.IO) {
                         viewModel.currentHikeId?.let { hikeId ->
-                            val photoId = photoDao.insert(Photo(location = null, path = path))
+                            val locationManager = requireContext().getSystemService(Activity.LOCATION_SERVICE) as android.location.LocationManager
+                            val location = if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                                locationManager.getLastKnownLocation(android.location.LocationManager.GPS_PROVIDER)
+                            } else null
+
+                            val locationString = location?.let { "${it.latitude},${it.longitude}" }
+
+                            val photoId = photoDao.insert(Photo(location = locationString, path = path))
                             if (photoId != null) {
                                 hikePhotoDao.insert(HikePhoto(
                                     hike_id = hikeId,

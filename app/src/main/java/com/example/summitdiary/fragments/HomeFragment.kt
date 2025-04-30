@@ -56,9 +56,11 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             onMapClick = { hike ->
                 val intent = Intent(requireContext(), MapTrackActivity::class.java).apply {
                     putExtra("gpxPath", hike.hike.gpx_path)
+                    putExtra("hikeId", hike.hike.hike_id)
                 }
                 startActivity(intent)
-            }
+            },
+            AppDatabase.getDatabase(requireContext()).placeDao()
         )
 
         binding.recyclerView.layoutManager = LinearLayoutManager(requireContext())

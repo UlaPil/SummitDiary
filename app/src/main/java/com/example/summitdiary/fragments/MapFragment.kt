@@ -19,6 +19,7 @@ import androidx.core.content.ContextCompat
 import android.Manifest
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Color
 import android.graphics.drawable.BitmapDrawable
 import com.example.summitdiary.R
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
@@ -28,6 +29,12 @@ import androidx.core.graphics.scale
 import com.example.summitdiary.database.AppDatabase
 import com.example.summitdiary.database.Place
 import androidx.core.graphics.drawable.toDrawable
+import androidx.lifecycle.lifecycleScope
+import com.example.summitdiary.viewmodel.GpxTrackLoader
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.osmdroid.views.overlay.Polyline
 
 class MapFragment : Fragment() {
 
@@ -67,20 +74,11 @@ class MapFragment : Fragment() {
             locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
         }
 
-        val db = AppDatabase.getDatabase(requireContext())
-        val placeDao = db.placeDao()
-        Thread {
-            placeDao.insert(
-                Place(name = "Giewont", gps = "49.2636, 19.9233")
-            )
-            placeDao.insert(
-                Place(name = "Rysy", gps = "49.1794, 20.0886")
-            )
-        }.start()
-
         return view
     }
 
+
+    private val drawnTrackOverlays = mutableMapOf<Long, List<Polyline>>()
 
     private fun setupMapLocation() {
         map.controller.setZoom(15.0)
@@ -107,32 +105,67 @@ class MapFragment : Fragment() {
 
         val db = AppDatabase.getDatabase(requireContext())
         val placeDao = db.placeDao()
+        val hikeDao = db.hikeDao()
         Thread {
             val places = placeDao.getAll()
             requireActivity().runOnUiThread {
                 val originalMarkerBitmap = BitmapFactory.decodeResource(resources, R.drawable.pin)
                 val scaledMarkerBitmap = originalMarkerBitmap.scale(80, 80)
                 val scaledMarkerDrawable = scaledMarkerBitmap.toDrawable(resources)
+
                 for (place in places) {
                     val parts = place.gps.split(",")
-                    if (parts.size == 2) {
-                        val lat = parts[0].trim().toDoubleOrNull()
-                        val lon = parts[1].trim().toDoubleOrNull()
-                        if (lat != null && lon != null) {
-                            val marker = Marker(map).apply {
-                                position = GeoPoint(lat, lon)
-                                title = place.name
-                                setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                                icon = scaledMarkerDrawable
-                            }
-                            map.overlays.add(marker)
+                    val lat = parts.getOrNull(0)?.trim()?.toDoubleOrNull()
+                    val lon = parts.getOrNull(1)?.trim()?.toDoubleOrNull()
+                    if (lat != null && lon != null) {
+                        val marker = Marker(map).apply {
+                            position = GeoPoint(lat, lon)
+                            title = place.name
+                            setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                            icon = scaledMarkerDrawable
                         }
+
+                        marker.setOnMarkerClickListener { _, _ ->
+                            lifecycleScope.launch {
+                                if (drawnTrackOverlays.containsKey(place.place_id)) {
+                                    // Usuń trasy
+                                    drawnTrackOverlays[place.place_id]?.forEach { map.overlays.remove(it) }
+                                    drawnTrackOverlays.remove(place.place_id)
+                                } else {
+                                    // Załaduj i narysuj trasy
+                                    val hikes = withContext(Dispatchers.IO) {
+                                        hikeDao.getHikesForPlace(place.place_id)
+                                    }
+
+                                    val colors = listOf(Color.RED, Color.BLUE, Color.GREEN, Color.MAGENTA)
+                                    val polylines = mutableListOf<Polyline>()
+                                    hikes.forEachIndexed { index, hike ->
+                                        val points = GpxTrackLoader.loadTrackFromFile(hike.gpx_path)
+                                        if (!points.isNullOrEmpty()) {
+                                            val polyline = Polyline().apply {
+                                                setPoints(points)
+                                                color = colors[index % colors.size]
+                                                width = 15f
+                                            }
+                                            map.overlays.add(polyline)
+                                            polylines.add(polyline)
+                                        }
+                                    }
+                                    drawnTrackOverlays[place.place_id] = polylines
+                                }
+                                map.invalidate()
+                            }
+                            true
+                        }
+
+                        map.overlays.add(marker)
                     }
                 }
                 map.invalidate()
             }
         }.start()
     }
+
 
     override fun onResume() {
         super.onResume()

@@ -27,4 +27,8 @@ interface HikeDao {
 
     @Query("SELECT * FROM hikes WHERE hike_id = :id")
     suspend fun getHikeById(id: Long): Hike?
+
+    @Query("SELECT * FROM Hikes WHERE place_id = :placeId")
+    fun getHikesForPlace(placeId: Long): List<Hike>
+
 }

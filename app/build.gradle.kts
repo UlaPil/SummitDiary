@@ -45,6 +45,7 @@ android {
 dependencies {
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
+    implementation(libs.androidx.room.runtime.android)
     ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.fragment.ktx)
     implementation(libs.androidx.core.ktx)
@@ -65,4 +66,5 @@ dependencies {
     ksp(libs.glideCompiler)
     implementation(libs.osmdroid.android)
     implementation(libs.osmdroid.wms)
+    implementation(libs.photoview)
 }
