@@ -13,10 +13,28 @@
         android:padding="24dp">
 
         <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Time"
+            android:textAlignment="center"
+            android:textSize="20sp"
+            android:textColor="#467272"
+            android:padding="8dp" />
+
+        <TextView
             android:id="@+id/timeText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Time\n0h 0min"
+            android:text="0h 0min"
+            android:textAlignment="center"
+            android:textSize="30sp"
+            android:textColor="#467272"
+            android:padding="8dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Distance"
             android:textAlignment="center"
             android:textSize="20sp"
             android:textColor="#467272"
@@ -26,9 +44,9 @@
             android:id="@+id/distanceText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Distance\n0km 0m"
+            android:text="0km 0m"
             android:textAlignment="center"
-            android:textSize="20sp"
+            android:textSize="30sp"
             android:textColor="#467272"
             android:padding="8dp" />
 
@@ -36,11 +54,13 @@
             android:id="@+id/startStopButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="32dp"
+            android:layout_marginTop="50dp"
             android:contentDescription="Start/Stop recording"
             app:backgroundTint="#467272"
             app:tint="@android:color/white"
-            app:srcCompat="@drawable/baseline_play_arrow_24" />
+            app:srcCompat="@drawable/baseline_play_arrow_24"
+            android:padding="0dp" />
+
     </LinearLayout>
 
     <!-- Górne przyciski -->

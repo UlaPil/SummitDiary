@@ -18,6 +18,9 @@ interface HikePhotoDao {
     """)
     suspend fun getPhotosForHike(hikeId: Long): List<Photo>
 
+    @Query("DELETE FROM HikesPhotos WHERE hike_id = :hikeId")
+    suspend fun deleteByHikeId(hikeId: Long)
+
     @Delete
     fun delete(link: HikePhoto)
 }

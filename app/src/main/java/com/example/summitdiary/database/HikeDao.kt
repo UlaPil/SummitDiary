@@ -6,14 +6,14 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface HikeDao {
 
-    @Query("SELECT * FROM Hikes")
+    @Query("SELECT * FROM Hikes ORDER BY date DESC")
     fun getAll(): Flow<List<Hike>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insert(hike: Hike) : Long?
 
     @Transaction
-    @Query("SELECT * FROM Hikes")
+    @Query("SELECT * FROM Hikes ORDER BY date DESC")
     fun getHikesWithPhotos(): Flow<List<HikeWithPhotos>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)

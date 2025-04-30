@@ -21,6 +21,7 @@ import java.util.Date
 import java.util.Locale
 import android.Manifest
 import android.app.AlertDialog
+import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.widget.EditText
 import android.widget.Toast
@@ -119,7 +120,7 @@ class RecordFragment : Fragment() {
                 }
             } else {
                 stopTimer()
-                binding.timeText.text = "00:00:00"
+                binding.timeText.text = "0h 0min"
                 showNameHikeDialog()
                 Toast.makeText(requireContext(), "Zakończono wędrówkę", Toast.LENGTH_SHORT).show()
             }
@@ -215,7 +216,7 @@ class RecordFragment : Fragment() {
         photoFile?.also {
             val photoURI: Uri = FileProvider.getUriForFile(
                 requireContext(),
-                "${requireContext().packageName}.fileprovider", // <- bardzo ważne!
+                "${requireContext().packageName}.fileprovider",
                 it
             )
             currentPhotoPath = it.absolutePath
@@ -240,7 +241,7 @@ class RecordFragment : Fragment() {
         editText.setPadding(32, 32, 32, 32)
 
         val durationFormatted = formatDuration(elapsedSeconds)
-
+        requireActivity().requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LOCKED
         AlertDialog.Builder(requireContext())
             .setTitle("Zakończono wędrówkę")
             .setMessage("Czas trwania: $durationFormatted\nPodaj nazwę wędrówki:")
@@ -260,6 +261,7 @@ class RecordFragment : Fragment() {
             }
             .setNegativeButton("Anuluj", null)
             .show()
+        requireActivity().requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
     }
 
     private fun formatDuration(seconds: Long): String {
