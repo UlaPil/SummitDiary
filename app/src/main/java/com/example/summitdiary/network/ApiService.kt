@@ -28,5 +28,8 @@ interface ApiService {
 
     @POST("/api/hikephotos")
     suspend fun postHikePhoto(@Body link: HikePhotoRequest): Response<Map<String, String>>
+
+    @GET("hikes")
+    suspend fun getHikes(): List<HikeDto>
 }
 
