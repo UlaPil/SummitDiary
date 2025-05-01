@@ -14,6 +14,12 @@ interface PhotoDao {
     @Query("SELECT * FROM Photos WHERE photo_id = :id")
     fun getById(id: Long): Photo?
 
+    @Query("SELECT * FROM Photos WHERE isSynced = 0")
+    suspend fun getUnsyncedPhotos(): List<Photo>
+
+    @Update
+    suspend fun update(photo: Photo)
+
     @Delete
     fun delete(photo: Photo)
 

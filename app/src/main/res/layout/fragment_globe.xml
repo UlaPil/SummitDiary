@@ -10,5 +10,12 @@
         android:layout_height="wrap_content"
         android:text="Globe Fragment"
         android:textSize="20sp" />
+    <Button
+        android:id="@+id/buttonSyncNow"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Synchronizuj teraz"
+        android:layout_gravity="center"
+        android:layout_marginTop="16dp" />
 
 </LinearLayout>

@@ -19,6 +19,9 @@ interface HikeDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertHikePhotoCrossRef(crossRef: HikePhoto)
 
+    @Query("SELECT * FROM Hikes WHERE isSynced = 0")
+    suspend fun getUnsyncedHikes(): List<Hike>
+
     @Update
     suspend fun update(hike: Hike)
 

@@ -67,4 +67,9 @@ dependencies {
     implementation(libs.osmdroid.android)
     implementation(libs.osmdroid.wms)
     implementation(libs.photoview)
+    implementation(libs.retrofit)
+    implementation(libs.converter.gson)
+    implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.logging.interceptor)
+
 }

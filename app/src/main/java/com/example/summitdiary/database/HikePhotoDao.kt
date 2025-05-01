@@ -21,6 +21,12 @@ interface HikePhotoDao {
     @Query("DELETE FROM HikesPhotos WHERE hike_id = :hikeId")
     suspend fun deleteByHikeId(hikeId: Long)
 
+    @Query("SELECT * FROM HikesPhotos WHERE isSynced = 0")
+    suspend fun getUnsyncedLinks(): List<HikePhoto>
+
+    @Update
+    suspend fun update(hikePhoto: HikePhoto)
+
     @Delete
     fun delete(link: HikePhoto)
 }
