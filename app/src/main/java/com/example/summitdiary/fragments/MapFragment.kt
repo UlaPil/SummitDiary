@@ -17,10 +17,15 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import android.Manifest
+import android.app.AlertDialog
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.drawable.BitmapDrawable
+import android.widget.Button
+import android.widget.EditText
+import android.widget.LinearLayout
+import android.widget.TextView
 import com.example.summitdiary.R
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
@@ -35,12 +40,17 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.osmdroid.views.overlay.Polyline
+import androidx.core.view.isVisible
 
 class MapFragment : Fragment() {
 
     private lateinit var map: MapView
     private lateinit var locationOverlay: MyLocationNewOverlay
     private lateinit var locationPermissionLauncher: ActivityResultLauncher<String>
+    private lateinit var placeInfoBar: LinearLayout
+    private lateinit var placeNameText: TextView
+    private lateinit var editPlaceButton: Button
+    private var currentVisiblePlaceId: Long? = null
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -55,6 +65,10 @@ class MapFragment : Fragment() {
         map.setBuiltInZoomControls(false)
         map.setMultiTouchControls(true)
         map.setTileSource(TileSourceFactory.MAPNIK)
+
+        placeInfoBar = view.findViewById<LinearLayout>(R.id.placeInfoBar)
+        placeNameText = view.findViewById<TextView>(R.id.placeNameText)
+        editPlaceButton = view.findViewById<Button>(R.id.editPlaceButton)
 
         locationPermissionLauncher = registerForActivityResult(
             ActivityResultContracts.RequestPermission()
@@ -123,16 +137,25 @@ class MapFragment : Fragment() {
                             title = place.name
                             setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
                             icon = scaledMarkerDrawable
+                            id = place.place_id.toString()
                         }
-
                         marker.setOnMarkerClickListener { _, _ ->
                             lifecycleScope.launch {
                                 if (drawnTrackOverlays.containsKey(place.place_id)) {
-                                    // Usuń trasy
                                     drawnTrackOverlays[place.place_id]?.forEach { map.overlays.remove(it) }
                                     drawnTrackOverlays.remove(place.place_id)
+                                    placeInfoBar.visibility = View.GONE
+                                    currentVisiblePlaceId = null
                                 } else {
-                                    // Załaduj i narysuj trasy
+                                    drawnTrackOverlays[currentVisiblePlaceId]?.forEach { map.overlays.remove(it) }
+                                    drawnTrackOverlays.remove(currentVisiblePlaceId)
+                                    currentVisiblePlaceId = place.place_id
+                                    placeInfoBar.visibility = View.VISIBLE
+                                    placeNameText.text = place.name
+
+                                    editPlaceButton.setOnClickListener {
+                                        showEditPlaceDialog(place)
+                                    }
                                     val hikes = withContext(Dispatchers.IO) {
                                         hikeDao.getHikesForPlace(place.place_id)
                                     }
@@ -152,18 +175,58 @@ class MapFragment : Fragment() {
                                         }
                                     }
                                     drawnTrackOverlays[place.place_id] = polylines
+                                    val thisMarker = map.overlays.find {
+                                        it is Marker && (it as Marker).id == place.place_id.toString()
+                                    } as? Marker
+
+                                    thisMarker?.let {
+                                        map.overlays.remove(it)
+                                        map.overlays.add(it)
+                                    }
+                                    if (map.overlays.contains(locationOverlay)) {
+                                        map.overlays.remove(locationOverlay)
+                                        map.overlays.add(locationOverlay)
+                                    }
                                 }
                                 map.invalidate()
                             }
                             true
                         }
-
                         map.overlays.add(marker)
                     }
+                }
+                if (map.overlays.contains(locationOverlay)) {
+                    map.overlays.remove(locationOverlay)
+                    map.overlays.add(locationOverlay)
                 }
                 map.invalidate()
             }
         }.start()
+    }
+
+    private fun showEditPlaceDialog(place: Place) {
+        val input = EditText(requireContext()).apply {
+            setText(place.name)
+        }
+
+        AlertDialog.Builder(requireContext())
+            .setTitle("Edytuj nazwę miejsca")
+            .setView(input)
+            .setPositiveButton("Zapisz") { _, _ ->
+                val newName = input.text.toString().trim()
+                if (newName.isNotEmpty()) {
+                    lifecycleScope.launch(Dispatchers.IO) {
+                        val db = AppDatabase.getDatabase(requireContext())
+                        db.placeDao().insert(place.copy(name = newName))
+                        withContext(Dispatchers.Main) {
+                            placeNameText.text = newName
+                            Toast.makeText(requireContext(), "Zmieniono nazwę!", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            }
+            .setNegativeButton("Anuluj", null)
+            .show()
     }
 
 

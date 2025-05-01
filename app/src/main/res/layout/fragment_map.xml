@@ -1,12 +1,41 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical">
+    xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <org.osmdroid.views.MapView
         android:id="@+id/mapView"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-</LinearLayout>
+    <LinearLayout
+        android:id="@+id/placeInfoBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="16dp"
+        android:background="#CCFFFFFF"
+        android:visibility="gone"
+        android:layout_gravity="bottom">
+
+        <TextView
+            android:id="@+id/placeNameText"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Miejsce"
+            android:textSize="18sp"
+            android:textColor="#467272" />
+
+        <Button
+            android:id="@+id/editPlaceButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Edytuj"
+            android:textColor="@android:color/white"
+            app:backgroundTint="#467272" />
+    </LinearLayout>
+
+</FrameLayout>
+
