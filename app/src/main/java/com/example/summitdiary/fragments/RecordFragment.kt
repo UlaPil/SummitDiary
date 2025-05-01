@@ -23,11 +23,15 @@ import android.Manifest
 import android.app.AlertDialog
 import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.preference.PreferenceManager
 import android.widget.EditText
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
+import androidx.core.graphics.scale
 import androidx.fragment.app.viewModels
 import com.example.summitdiary.database.AppDatabase
 import com.example.summitdiary.database.Hike
@@ -43,6 +47,12 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.osmdroid.config.Configuration
+import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import org.osmdroid.util.GeoPoint
+import org.osmdroid.views.MapView
+import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
+import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
 import kotlin.math.roundToInt
 
 class RecordFragment : Fragment() {
@@ -64,6 +74,9 @@ class RecordFragment : Fragment() {
     private var isRecording = false
     private var photoUri: Uri? = null
     private var timerJob: Job? = null
+
+    private lateinit var miniMapView: MapView
+    private lateinit var miniLocationOverlay: MyLocationNewOverlay
 
     private val REQUEST_IMAGE_CAPTURE = 1
     private lateinit var requestCameraPermissionLauncher: ActivityResultLauncher<String>
@@ -101,6 +114,35 @@ class RecordFragment : Fragment() {
         hikePhotoDao = db.hikePhotoDao()
         updateStartStopIcon()
 
+        miniMapView = binding.miniMapView
+
+        Configuration.getInstance().load(requireContext(), PreferenceManager.getDefaultSharedPreferences(requireContext()))
+        miniMapView.setTileSource(TileSourceFactory.MAPNIK)
+        miniMapView.setMultiTouchControls(true)
+        miniMapView.setBuiltInZoomControls(false)
+        miniMapView.controller.setZoom(15.0)
+
+        val locationProvider = GpsMyLocationProvider(requireContext())
+        val locationIcon: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.ludzik)
+        val scaledIcon = locationIcon.scale(100, 100)
+
+        miniLocationOverlay = MyLocationNewOverlay(locationProvider, miniMapView).apply {
+            setPersonIcon(locationIcon)
+            setDirectionArrow(scaledIcon, scaledIcon)
+            enableMyLocation()
+            enableFollowLocation()
+        }
+        miniMapView.overlays.add(miniLocationOverlay)
+
+        miniLocationOverlay.runOnFirstFix {
+            val loc = miniLocationOverlay.myLocation
+            if (loc != null) {
+                requireActivity().runOnUiThread {
+                    miniMapView.controller.animateTo(GeoPoint(loc.latitude, loc.longitude))
+                }
+            }
+        }
+
         binding.startStopButton.setOnClickListener {
             isRecording = !isRecording
             updateStartStopIcon()
@@ -117,19 +159,20 @@ class RecordFragment : Fragment() {
                         date = SimpleDateFormat("dd.MM.yyyy (HH:mm)", Locale.getDefault()).format(Date()),
                         distance = 0.0,
                         time = "0",
-                        place_id = 1,
+                        place_id = 0,
                         gpx_path = ""
                     )
                     viewModel.currentHikeId = hikeDao.insert(hike)
                     withContext(Dispatchers.Main) {
-                        Toast.makeText(requireContext(), "Rozpoczęto wędrówkę! ID: ${viewModel.currentHikeId}", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(requireContext(), "Rozpoczęto wędrówkę!", Toast.LENGTH_SHORT).show()
                     }
                 }
             } else {
                 stopLocationTracking()
                 saveGpxFile()
                 stopTimer()
-                binding.timeText.text = "0h 0min"
+                binding.timeText.text = "00:00:00"
+                binding.distanceText.text = "0,00 km"
                 lifecycleScope.launch(Dispatchers.IO) {
                     withContext(Dispatchers.Main) {
                         showNameHikeDialog()
@@ -145,7 +188,37 @@ class RecordFragment : Fragment() {
         }
 
         binding.locationButton.setOnClickListener {
-            // TODO: Show current location
+            lifecycleScope.launch(Dispatchers.IO) {
+                viewModel.currentHikeId?.let { hikeId ->
+                    val db = AppDatabase.getDatabase(requireContext())
+                    val hike = db.hikeDao().getHikeById(hikeId)
+                    if (hike != null) {
+                        val hasPlace = hike.place_id != 0L
+
+                        withContext(Dispatchers.Main) {
+                            if (hasPlace) {
+                                AlertDialog.Builder(requireContext())
+                                    .setTitle("Zmień miejsce")
+                                    .setMessage("Czy chcesz zmienić miejsce przypisane do tej wędrówki?")
+                                    .setPositiveButton("Tak") { _, _ ->
+                                        pickPlaceAndUpdate(hikeId)
+                                    }
+                                    .setNegativeButton("Nie", null)
+                                    .show()
+                            } else {
+                                AlertDialog.Builder(requireContext())
+                                    .setTitle("Dodaj miejsce")
+                                    .setMessage("Chcesz dodać miejsce dla tej wędrówki?")
+                                    .setPositiveButton("Tak") { _, _ ->
+                                        pickPlaceAndUpdate(hikeId)
+                                    }
+                                    .setNegativeButton("Nie", null)
+                                    .show()
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         requestCameraPermissionLauncher = registerForActivityResult(
@@ -179,7 +252,7 @@ class RecordFragment : Fragment() {
                                     photo_id = photoId
                                 ))
                                 withContext(Dispatchers.Main) {
-                                    Toast.makeText(requireContext(), "Zdjęcie zapisane do Hike $hikeId", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(requireContext(), "Zdjęcie zapisane do wędrówki", Toast.LENGTH_SHORT).show()
                                 }
                             } else {
                                 withContext(Dispatchers.Main) {
@@ -188,7 +261,7 @@ class RecordFragment : Fragment() {
                             }
                         } ?: run {
                             withContext(Dispatchers.Main) {
-                                Toast.makeText(requireContext(), "Błąd: brak aktywnej wędrówki!", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(requireContext(), "Brak aktywnej wędrówki", Toast.LENGTH_SHORT).show()
                             }
                         }
                     }
@@ -198,6 +271,45 @@ class RecordFragment : Fragment() {
             }
         }
     }
+
+    private fun pickPlaceAndUpdate(hikeId: Long) {
+        lifecycleScope.launch(Dispatchers.IO) {
+            val db = AppDatabase.getDatabase(requireContext())
+            val placeDao = db.placeDao()
+            val places = placeDao.getAll()
+
+            val placeNames = places.map { it.name } + "Dodaj nowe miejsce"
+
+            withContext(Dispatchers.Main) {
+                AlertDialog.Builder(requireContext())
+                    .setTitle("Wybierz miejsce")
+                    .setSingleChoiceItems(placeNames.toTypedArray(), -1) { dialog, which ->
+                        if (which < places.size) {
+                            val selectedPlaceId = places[which].place_id
+                            lifecycleScope.launch(Dispatchers.IO) {
+                                db.hikeDao().updatePlaceId(hikeId, selectedPlaceId)
+                            }
+                            dialog.dismiss()
+                        } else {
+                            val lastPoint = locationPoints.lastOrNull()
+                            if (lastPoint != null) {
+                                askForNewPlaceName(lastPoint.first, lastPoint.second) { newPlaceId ->
+                                    lifecycleScope.launch(Dispatchers.IO) {
+                                        db.hikeDao().updatePlaceId(hikeId, newPlaceId)
+                                    }
+                                }
+                            } else {
+                                Toast.makeText(requireContext(), "Brak sygnału GPS", Toast.LENGTH_SHORT).show()
+                            }
+                            dialog.dismiss()
+                        }
+                    }
+                    .setNegativeButton("Anuluj", null)
+                    .show()
+            }
+        }
+    }
+
 
     private fun updateStartStopIcon() {
         if (isRecording) {
@@ -262,10 +374,24 @@ class RecordFragment : Fragment() {
         val startLat = locationPoints.firstOrNull()?.first
         val startLon = locationPoints.firstOrNull()?.second
 
+        val hikeId = viewModel.currentHikeId ?: return
+        val hike = withContext(Dispatchers.IO) { hikeDao.getHikeById(hikeId) }
+
         if (startLat == null || startLon == null) {
-            withContext(Dispatchers.Main) {
-                Toast.makeText(requireContext(), "Brak punktu początkowego", Toast.LENGTH_SHORT).show()
+            if (hike?.place_id != null && hike.place_id != 0L) {
+                showHikeNameDialog(durationFormatted, hike.place_id)
+                return
             }
+
+            withContext(Dispatchers.Main) {
+                Toast.makeText(requireContext(), "Brak sygnału GPS", Toast.LENGTH_SHORT).show()
+            }
+            showHikeNameDialog(durationFormatted, 0)
+            return
+        }
+
+        if (hike?.place_id != null && hike.place_id != 0L) {
+            showHikeNameDialog(durationFormatted, hike.place_id)
             return
         }
 
@@ -283,14 +409,16 @@ class RecordFragment : Fragment() {
 
         withContext(Dispatchers.Main) {
             AlertDialog.Builder(requireContext())
-                .setTitle("Wybierz miejsce startu")
+                .setTitle("Wybierz miejsce")
                 .setSingleChoiceItems(placeNames.toTypedArray(), -1) { dialog, which ->
                     if (which < nearbyPlaces.size) {
                         val selectedPlaceId = nearbyPlaces[which].place_id
                         showHikeNameDialog(durationFormatted, selectedPlaceId)
                         dialog.dismiss()
                     } else {
-                        askForNewPlaceName(locationPoints.lastOrNull()!!.first, locationPoints.lastOrNull()!!.second, durationFormatted)
+                        askForNewPlaceName(locationPoints.lastOrNull()!!.first, locationPoints.lastOrNull()!!.second) { newPlaceId ->
+                            showHikeNameDialog(durationFormatted, newPlaceId)
+                        }
                         dialog.dismiss()
                     }
                 }
@@ -299,8 +427,7 @@ class RecordFragment : Fragment() {
         }
     }
 
-
-    private fun askForNewPlaceName(lat: Double, lon: Double, durationFormatted: String) {
+    private fun askForNewPlaceName(lat: Double, lon: Double, onPlaceAdded: (Long) -> Unit) {
         val input = EditText(requireContext())
         input.hint = "Nazwa nowego miejsca"
 
@@ -315,7 +442,7 @@ class RecordFragment : Fragment() {
                     val db = AppDatabase.getDatabase(requireContext())
                     val placeId = db.placeDao().insert(com.example.summitdiary.database.Place(name = name, gps = gpsString))
                     withContext(Dispatchers.Main) {
-                        showHikeNameDialog(durationFormatted, placeId)
+                        onPlaceAdded(placeId)
                     }
                 }
             }
@@ -472,6 +599,16 @@ class RecordFragment : Fragment() {
         val results = FloatArray(1)
         android.location.Location.distanceBetween(lat1, lon1, lat2, lon2, results)
         return results[0].toDouble()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        miniMapView.onResume()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        miniMapView.onPause()
     }
 
     override fun onDestroyView() {

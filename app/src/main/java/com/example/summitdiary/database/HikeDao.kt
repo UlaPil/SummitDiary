@@ -31,4 +31,7 @@ interface HikeDao {
     @Query("SELECT * FROM Hikes WHERE place_id = :placeId")
     fun getHikesForPlace(placeId: Long): List<Hike>
 
+    @Query("UPDATE Hikes SET place_id = :placeId WHERE hike_id = :hikeId")
+    suspend fun updatePlaceId(hikeId: Long, placeId: Long)
+
 }
