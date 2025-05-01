@@ -6,5 +6,6 @@ import androidx.room.*
 data class Photo(
     @PrimaryKey(autoGenerate = true) val photo_id: Long = 0,
     val location: String?,
-    val path: String
+    val path: String,
+    var isSynced: Boolean = false
 )

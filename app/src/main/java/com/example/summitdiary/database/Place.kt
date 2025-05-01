@@ -6,5 +6,6 @@ import androidx.room.*
 data class Place(
     @PrimaryKey(autoGenerate = true) val place_id: Long = 0,
     val name: String,
-    val gps: String
+    val gps: String,
+    var isSynced: Boolean = false
 )

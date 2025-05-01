@@ -8,5 +8,6 @@ import androidx.room.*
 )
 data class HikePhoto(
     val hike_id: Long,
-    val photo_id: Long
+    val photo_id: Long,
+    var isSynced: Boolean = false
 )

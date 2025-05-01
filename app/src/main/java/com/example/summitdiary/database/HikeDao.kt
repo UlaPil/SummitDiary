@@ -13,7 +13,7 @@ interface HikeDao {
     fun insert(hike: Hike) : Long?
 
     @Transaction
-    @Query("SELECT * FROM Hikes ORDER BY date DESC")
+    @Query("SELECT * FROM Hikes ORDER BY substr(date, 7, 4) || substr(date, 4, 2) || substr(date, 1, 2) || substr(date, 13, 2) || substr(date, 16, 2) DESC")
     fun getHikesWithPhotos(): Flow<List<HikeWithPhotos>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)

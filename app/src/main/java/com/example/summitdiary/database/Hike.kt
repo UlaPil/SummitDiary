@@ -10,5 +10,6 @@ data class Hike(
     var distance: Double,
     var time: String,
     var place_id: Long,
-    var gpx_path: String
+    var gpx_path: String,
+    var isSynced: Boolean = false
 )
