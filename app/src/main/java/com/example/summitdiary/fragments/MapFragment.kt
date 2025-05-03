@@ -41,6 +41,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.osmdroid.views.overlay.Polyline
 import androidx.core.view.isVisible
+import androidx.core.graphics.toColorInt
 
 class MapFragment : Fragment() {
 
@@ -160,7 +161,7 @@ class MapFragment : Fragment() {
                                         hikeDao.getHikesForPlace(place.place_id)
                                     }
 
-                                    val colors = listOf(Color.RED, Color.BLUE, Color.GREEN, Color.MAGENTA)
+                                    val colors = listOf("#720000".toColorInt(), "#005264".toColorInt(), "#483D8B".toColorInt(), "#770737".toColorInt())
                                     val polylines = mutableListOf<Polyline>()
                                     hikes.forEachIndexed { index, hike ->
                                         val points = GpxTrackLoader.loadTrackFromFile(hike.gpx_path)

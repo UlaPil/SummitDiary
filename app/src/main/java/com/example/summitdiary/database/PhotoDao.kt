@@ -20,6 +20,9 @@ interface PhotoDao {
     @Update
     suspend fun update(photo: Photo)
 
+    @Query("UPDATE Photos SET isSynced = 0")
+    suspend fun resetAllPhotosSyncedFlag()
+
     @Delete
     fun delete(photo: Photo)
 

@@ -18,6 +18,10 @@ import android.content.Intent
 import android.os.PowerManager
 import android.provider.Settings
 import android.content.Context
+import com.example.summitdiary.database.AppDatabase
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
 
@@ -46,6 +50,7 @@ class MainActivity : AppCompatActivity() {
         binding.buttonGlobe.setOnClickListener {
             replaceFragment(GlobeFragment())
         }
+
         val workRequest = PeriodicWorkRequestBuilder<SyncWorker>(15, TimeUnit.MINUTES).build()
         WorkManager.getInstance(this).enqueueUniquePeriodicWork(
             "syncWork",

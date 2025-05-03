@@ -14,6 +14,9 @@ interface PlaceDao {
     @Query("SELECT name FROM Places WHERE place_id = :id")
     fun getById(id: Long): String?
 
+    @Query("SELECT * FROM Places WHERE place_id = :id LIMIT 1")
+    suspend fun getPlaceById(id: Long): Place
+
     @Query("SELECT * FROM Places WHERE isSynced = 0")
     suspend fun getUnsyncedPlaces(): List<Place>
 

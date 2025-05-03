@@ -22,8 +22,14 @@ interface HikeDao {
     @Query("SELECT * FROM Hikes WHERE isSynced = 0")
     suspend fun getUnsyncedHikes(): List<Hike>
 
+    @Query("UPDATE Hikes SET isSynced = 0")
+    suspend fun resetAllHikesSyncedFlag()
+
     @Update
     suspend fun update(hike: Hike)
+
+    @Query("UPDATE Hikes SET isSynced = 1 WHERE hike_id = :hikeId")
+    suspend fun markAsSynced(hikeId: Long)
 
     @Delete
     suspend fun delete(hike: Hike)

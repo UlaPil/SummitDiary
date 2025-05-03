@@ -38,7 +38,7 @@ object GpxTrackLoader {
         val polyline = Polyline().apply {
             setPoints(points)
             this.color = color
-            width = 20f
+            width = 15f
         }
         map.overlays.add(polyline)
         map.invalidate()

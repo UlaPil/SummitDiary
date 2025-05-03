@@ -49,19 +49,21 @@ class GlobeFragment : Fragment() {
         lifecycleScope.launch {
             try {
                 val hikes = ApiClient.apiService.getHikes()
-                adapter.updateData(hikes)
-                binding.errorText.visibility = View.GONE
+                if (_binding != null) {
+                    adapter.updateData(hikes)
+                }
             } catch (e: Exception) {
                 e.printStackTrace()
-                binding.errorText.text = "Brak połączenia z serwerem"
-                binding.errorText.visibility = View.VISIBLE
+                if (_binding != null) {
+                    binding.errorText.text = "Brak połączenia z serwerem"
+                    binding.errorText.visibility = View.VISIBLE
+                }
             }
         }
     }
 
+
     private fun applyHike(hike: HikeDto) {
-        // Tu możesz dodać logikę do „przepisania” globalnego hiku do lokalnej bazy
-        // Na początek wrzucamy tylko log do konsoli
         println("Kliknięto Apply dla hiku: ${hike.title}")
     }
 
