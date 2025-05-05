@@ -615,4 +615,8 @@ class RecordFragment : Fragment() {
         super.onDestroyView()
         _binding = null
     }
+
+    override fun toString(): String {
+        return "Record"
+    }
 }

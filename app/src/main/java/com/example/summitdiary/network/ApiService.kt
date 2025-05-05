@@ -2,6 +2,7 @@ package com.example.summitdiary.network
 
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
+import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.*
 
@@ -19,5 +20,11 @@ interface ApiService {
 
     @GET("hikes")
     suspend fun getHikes(): List<HikeDto>
+
+    @GET("api/hikes/{id}")
+    suspend fun getHikeById(@Path("id") id: Int): HikeDetailDto
+
+    @GET
+    suspend fun downloadFile(@Url fileUrl: String): Response<ResponseBody>
 }
 
