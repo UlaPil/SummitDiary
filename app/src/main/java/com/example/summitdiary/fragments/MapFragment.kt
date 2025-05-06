@@ -161,7 +161,7 @@ class MapFragment : Fragment() {
                                         hikeDao.getHikesForPlace(place.place_id)
                                     }
 
-                                    val colors = listOf("#720000".toColorInt(), "#005264".toColorInt(), "#483D8B".toColorInt(), "#770737".toColorInt())
+                                    val colors = listOf("#eb3434".toColorInt(), "#eba434".toColorInt(), "#abeb34".toColorInt(), "#34eb8f".toColorInt(), "#3452eb".toColorInt())
                                     val polylines = mutableListOf<Polyline>()
                                     hikes.forEachIndexed { index, hike ->
                                         val points = GpxTrackLoader.loadTrackFromFile(hike.gpx_path)

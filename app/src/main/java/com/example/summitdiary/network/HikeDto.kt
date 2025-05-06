@@ -6,6 +6,7 @@ data class HikeDto(
     val date: String,
     val distance: Double,
     val time: String,
-    val placeId: Int,
+    val place: String,
+    val gpxPath: String,
     val userId: Int
 )

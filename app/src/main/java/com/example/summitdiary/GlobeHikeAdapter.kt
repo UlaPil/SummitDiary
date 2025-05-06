@@ -27,8 +27,8 @@ class GlobeHikeAdapter(
             title.text = hike.title
             distance.text = String.format(Locale.getDefault(), "%.2f km", hike.distance)
             time.text = hike.time
-            dateAndPlace.text = "${hike.date} • miejsce • user ${hike.userId}"
-            imageGallery.removeAllViews() // brak zdjęć
+            dateAndPlace.text = "${hike.date} • ${hike.place} \nUser ${hike.userId}"
+            imageGallery.removeAllViews()
 
             applyButton.setOnClickListener {
                 onApplyClick(hike)

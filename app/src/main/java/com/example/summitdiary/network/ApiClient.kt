@@ -1,5 +1,6 @@
 package com.example.summitdiary.network
 
+import com.example.summitdiary.network.Config.BASE_URL
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -15,10 +16,7 @@ object ApiClient {
         .build()
 
     private val retrofit = Retrofit.Builder()
-//        .baseUrl("http://192.168.2.154:8888/")
-//        .baseUrl("http://192.168.5.91:8888/")
-//        .baseUrl("http://192.168.8.105:8888/")
-        .baseUrl("http://10.10.209.123:8888/")
+        .baseUrl(BASE_URL)
         .client(client)
         .addConverterFactory(GsonConverterFactory.create())
         .build()

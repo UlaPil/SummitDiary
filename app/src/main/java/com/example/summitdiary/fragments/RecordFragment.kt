@@ -278,28 +278,38 @@ class RecordFragment : Fragment() {
             val placeDao = db.placeDao()
             val places = placeDao.getAll()
 
-            val placeNames = places.map { it.name } + "Dodaj nowe miejsce"
+            val currentLocation = locationPoints.lastOrNull()
+            val nearbyPlaces = if (currentLocation != null) {
+                places.filter { place ->
+                    val (lat, lon) = place.gps.split(",").map { it.trim().toDoubleOrNull() ?: 0.0 }
+                    distanceInMeters(currentLocation.first, currentLocation.second, lat, lon) <= 2000
+                }
+            } else {
+                emptyList()
+            }
+
+            val placeNames = nearbyPlaces.map { it.name } + "Dodaj nowe miejsce"
 
             withContext(Dispatchers.Main) {
+                if (currentLocation == null) {
+                    Toast.makeText(requireContext(), "Brak sygnału GPS", Toast.LENGTH_SHORT).show()
+                    return@withContext
+                }
+
                 AlertDialog.Builder(requireContext())
                     .setTitle("Wybierz miejsce")
                     .setSingleChoiceItems(placeNames.toTypedArray(), -1) { dialog, which ->
-                        if (which < places.size) {
-                            val selectedPlaceId = places[which].place_id
+                        if (which < nearbyPlaces.size) {
+                            val selectedPlaceId = nearbyPlaces[which].place_id
                             lifecycleScope.launch(Dispatchers.IO) {
                                 db.hikeDao().updatePlaceId(hikeId, selectedPlaceId)
                             }
                             dialog.dismiss()
                         } else {
-                            val lastPoint = locationPoints.lastOrNull()
-                            if (lastPoint != null) {
-                                askForNewPlaceName(lastPoint.first, lastPoint.second) { newPlaceId ->
-                                    lifecycleScope.launch(Dispatchers.IO) {
-                                        db.hikeDao().updatePlaceId(hikeId, newPlaceId)
-                                    }
+                            askForNewPlaceName(currentLocation.first, currentLocation.second) { newPlaceId ->
+                                lifecycleScope.launch(Dispatchers.IO) {
+                                    db.hikeDao().updatePlaceId(hikeId, newPlaceId)
                                 }
-                            } else {
-                                Toast.makeText(requireContext(), "Brak sygnału GPS", Toast.LENGTH_SHORT).show()
                             }
                             dialog.dismiss()
                         }
@@ -309,7 +319,6 @@ class RecordFragment : Fragment() {
             }
         }
     }
-
 
     private fun updateStartStopIcon() {
         if (isRecording) {

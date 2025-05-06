@@ -29,6 +29,7 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import com.example.summitdiary.database.HikePhoto
 import com.example.summitdiary.database.Place
 import com.example.summitdiary.database.AppDatabase
+import com.example.summitdiary.network.Config.BASE_URL
 import com.example.summitdiary.network.HikeDetailDto
 import com.example.summitdiary.network.PhotoDto
 import kotlinx.coroutines.Dispatchers
@@ -139,14 +140,12 @@ class GlobeFragment : Fragment() {
             try {
                 val hikeDetail = ApiClient.apiService.getHikeById(hike.id)
 
-                // Helper do budowania URL
                 fun getDownloadUrl(type: String, path: String): String {
-                    val baseUrl = "http://10.10.209.123:8888"
+                    val baseUrl = BASE_URL
                     val filename = path.substringAfterLast("/")
                     return "$baseUrl/api/$type/$filename"
                 }
 
-                // Pobierz GPX
                 val gpxUrl = getDownloadUrl("gpx", hikeDetail.gpxPath)
                 val gpxFile = File(requireContext().filesDir, "gpx_${hikeDetail.id}.gpx")
                 val gpxSuccess = downloadFile(gpxUrl, gpxFile)
@@ -156,7 +155,6 @@ class GlobeFragment : Fragment() {
                     return@launch
                 }
 
-                // Pobierz zdjęcia
                 val photoEntities = mutableListOf<Photo>()
                 for (photoDto in hikeDetail.photos) {
                     val photoUrl = getDownloadUrl("photo", photoDto.path)
@@ -171,7 +169,6 @@ class GlobeFragment : Fragment() {
                     )
                 }
 
-                // Pobierz miejsca w tle
                 val places = withContext(Dispatchers.IO) {
                     db.placeDao().getAll()
                 }
@@ -201,7 +198,6 @@ class GlobeFragment : Fragment() {
                     }
                 }
 
-                // Zapisz hike i zdjęcia w jednej transakcji w tle
                 withContext(Dispatchers.IO) {
                     db.runInTransaction {
                         val localHikeId = db.hikeDao().insert(
